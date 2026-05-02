@@ -9,14 +9,19 @@
         body { font-family: -apple-system, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; justify-content: center; }
         .app-container { width: 100%; max-width: 600px; }
         .card { background: var(--card); padding: 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
-        video { width: 100%; border-radius: 12px; background: #000; margin-bottom: 20px; display: none; }
+        
+        /* Video tetap ada tapi ukurannya disesuaikan */
+        #videoWrapper { width: 100%; border-radius: 12px; overflow: hidden; background: #000; margin-bottom: 20px; display: none; }
+        video { width: 100%; display: block; }
+        
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 8px; font-size: 0.9em; color: #aaa; }
         select, input { width: 100%; padding: 14px; background: #2a2a2a; border: 1px solid #333; border-radius: 10px; color: white; font-size: 16px; box-sizing: border-box; }
         .time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .btn-main { width: 100%; padding: 16px; background: var(--primary); border: none; border-radius: 12px; color: white; font-weight: bold; font-size: 1em; margin-top: 20px; cursor: pointer; }
         .btn-main.active { background: #f44336; }
-        .btn-capture { background: #444; padding: 8px; font-size: 0.75em; margin-top: 5px; border-radius: 6px; border: none; color: white; width: 100%; cursor: pointer; }
+        .btn-capture { background: #444; padding: 10px; font-size: 0.75em; margin-top: 5px; border-radius: 8px; border: none; color: white; width: 100%; }
+        .status-box { font-size: 0.85em; text-align: center; margin-top: 20px; color: #777; }
     </style>
 </head>
 <body>
@@ -27,51 +32,65 @@
         
         <div class="form-group">
             <label>Pilih Surah:</label>
-            <select id="surahSelect" onchange="loadVideo()">
+            <select id="surahSelect">
                 <option value="">-- Pilih Surah --</option>
-                <option value="Surah-Thaha.mp4">Surah Thaha</option>
-                <option value="Surah-Ibrahim.mp4">Surah Ibrahim</option>
-                <option value="Surah-Maryam.mp4">Surah Maryam</option>
+                <option value="https://dl.dropboxusercontent.com/scl/fi/jtyfu1d0dmf2uheigls3o/Surah-Ibrahim.mp4?rlkey=e2y8qty9unrz3z60zdt5p899h">Surah Ibrahim</option>
+                <option value="https://dl.dropboxusercontent.com/scl/fi/7kc3xntfc6b9txzrq7rov/Surah-Maryam.mp4?rlkey=59mr2hou1wo34bm071n81xf2i">Surah Maryam</option>
+                <option value="https://dl.dropboxusercontent.com/scl/fi/uda474ifxtnufq3eoeuai/Surah-Thaha.mp4?rlkey=ohpxsp70de5jjnrpskqxy24vf">Surah Thaha</option>
             </select>
         </div>
 
-        <video id="player" controls playsinline></video>
+        <div id="videoWrapper">
+            <video id="player" controls playsinline crossorigin="anonymous">
+                <source src="" type="video/mp4">
+                Browser tidak mendukung video.
+            </video>
+        </div>
 
         <div class="time-grid">
             <div>
                 <label>Mulai Loop:</label>
                 <input type="text" id="startTime" value="00:00">
-                <button class="btn-capture" onclick="captureTime('startTime')">Ambil Waktu Ini</button>
+                <button class="btn-capture" onclick="captureTime('startTime')">Ambil Menit Ini</button>
             </div>
             <div>
                 <label>Selesai Loop:</label>
                 <input type="text" id="endTime" value="00:10">
-                <button class="btn-capture" onclick="captureTime('endTime')">Ambil Waktu Ini</button>
+                <button class="btn-capture" onclick="captureTime('endTime')">Ambil Menit Ini</button>
             </div>
         </div>
 
         <button class="btn-main" id="btnToggle">AKTIFKAN REPEAT</button>
-        
     </div>
 </div>
 
 <script>
     const player = document.getElementById('player');
+    const wrapper = document.getElementById('videoWrapper');
     const surahSelect = document.getElementById('surahSelect');
     const btnToggle = document.getElementById('btnToggle');
-    const statusText = document.getElementById('statusText');
     
     let isRepeatActive = false;
-    const videoFolder = "MP4/"; 
 
-    function loadVideo() {
-        const file = surahSelect.value;
-        if (file) {
-            player.src = videoFolder + file;
-            player.style.display = "block";
-            stopRepeat(); // Reset status jika ganti video
+    // Fungsi ganti surah
+    surahSelect.addEventListener('change', function() {
+        const url = this.value;
+        if (url) {
+            // Kita paksa ubah www ke dl untuk dropbox secara manual di sini jika perlu
+            let cleanUrl = url.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+            
+            player.src = cleanUrl;
+            wrapper.style.display = "block";
+            player.load(); // Paksa browser muat ulang resource
+            stopRepeat();
+            
+            // Log untuk debug di console browser
+            console.log("Memuat video dari:", cleanUrl);
+        } else {
+            wrapper.style.display = "none";
+            player.pause();
         }
-    }
+    });
 
     function timeToSeconds(str) {
         const p = str.split(':');
@@ -93,29 +112,24 @@
         document.getElementById(targetId).value = secondsToTime(player.currentTime);
     }
 
-    // Fungsi untuk menghentikan repeat secara bersih
     function stopRepeat() {
         isRepeatActive = false;
-        player.pause(); // Video ikut berhenti sesuai permintaanmu
+        player.pause();
         updateUI();
     }
 
     btnToggle.addEventListener('click', () => {
-        if (!player.src) return alert("Pilih surah dulu!");
+        if (!player.src || player.src.includes('index.html')) return alert("Pilih surah dulu!");
 
         if (!isRepeatActive) {
-            // Validasi sebelum mengaktifkan
             const start = timeToSeconds(document.getElementById('startTime').value);
             const end = timeToSeconds(document.getElementById('endTime').value);
 
-            if (end <= start) {
-                alert("Kesalahan: Waktu 'Selesai' harus lebih besar dari waktu 'Mulai'!");
-                return;
-            }
+            if (end <= start) return alert("Waktu selesai harus lebih besar!");
 
             isRepeatActive = true;
             player.currentTime = start;
-            player.play();
+            player.play().catch(e => console.log("Autoplay dicegah browser, silakan klik play manual"));
         } else {
             stopRepeat();
         }
@@ -123,21 +137,14 @@
     });
 
     function updateUI() {
-        if (isRepeatActive) {
-            btnToggle.innerText = "HENTIKAN REPEAT";
-            btnToggle.classList.add('active');
-        } else {
-            btnToggle.innerText = "AKTIFKAN REPEAT";
-            btnToggle.classList.remove('active');
-        }
+        btnToggle.innerText = isRepeatActive ? "HENTIKAN REPEAT" : "AKTIFKAN REPEAT";
+        btnToggle.style.background = isRepeatActive ? "#f44336" : "#4caf50";
     }
 
     player.addEventListener('timeupdate', () => {
         if (!isRepeatActive) return;
-
         const start = timeToSeconds(document.getElementById('startTime').value);
         const end = timeToSeconds(document.getElementById('endTime').value);
-
         if (player.currentTime >= end) {
             player.currentTime = start;
             player.play();
