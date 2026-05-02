@@ -41,9 +41,11 @@
         </div>
 
         <div id="videoWrapper">
-            <video id="player" controls playsinline crossorigin="anonymous">
+            <!-- Atribut preload="auto" memerintahkan browser untuk 
+     mengunduh video segera setelah link terdeteksi -->
+            <video id="player" controls playsinline preload="auto" crossorigin="anonymous">
                 <source src="" type="video/mp4">
-                Browser tidak mendukung video.
+                    Browser tidak mendukung video.
             </video>
         </div>
 
