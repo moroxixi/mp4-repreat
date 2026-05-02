@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Murottal Looper</title>
+    <style>
+        :root { --primary: #4caf50; --bg: #121212; --card: #1e1e1e; --text: #ffffff; }
+        body { font-family: -apple-system, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 600px; }
+        .card { background: var(--card); padding: 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+        video { width: 100%; border-radius: 12px; background: #000; margin-bottom: 20px; display: none; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 8px; font-size: 0.9em; color: #aaa; }
+        select, input { width: 100%; padding: 14px; background: #2a2a2a; border: 1px solid #333; border-radius: 10px; color: white; font-size: 16px; box-sizing: border-box; }
+        .time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .btn-main { width: 100%; padding: 16px; background: var(--primary); border: none; border-radius: 12px; color: white; font-weight: bold; font-size: 1em; margin-top: 20px; cursor: pointer; }
+        .btn-main.active { background: #f44336; }
+        .btn-capture { background: #444; padding: 8px; font-size: 0.75em; margin-top: 5px; border-radius: 6px; border: none; color: white; width: 100%; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="card">
+        <h2 style="text-align: center; margin-top: 0; color: var(--primary);">Murottal Looper</h2>
+        
+        <div class="form-group">
+            <label>Pilih Surah:</label>
+            <select id="surahSelect" onchange="loadVideo()">
+                <option value="">-- Pilih Surah --</option>
+                <option value="Surah-Thaha.mp4">Surah Thaha</option>
+                <option value="Surah-Ibrahim.mp4">Surah Ibrahim</option>
+                <option value="Surah-Maryam.mp4">Surah Maryam</option>
+            </select>
+        </div>
+
+        <video id="player" controls playsinline></video>
+
+        <div class="time-grid">
+            <div>
+                <label>Mulai Loop:</label>
+                <input type="text" id="startTime" value="00:00">
+                <button class="btn-capture" onclick="captureTime('startTime')">Ambil Waktu Ini</button>
+            </div>
+            <div>
+                <label>Selesai Loop:</label>
+                <input type="text" id="endTime" value="00:10">
+                <button class="btn-capture" onclick="captureTime('endTime')">Ambil Waktu Ini</button>
+            </div>
+        </div>
+
+        <button class="btn-main" id="btnToggle">AKTIFKAN REPEAT</button>
+        
+    </div>
+</div>
+
+<script>
+    const player = document.getElementById('player');
+    const surahSelect = document.getElementById('surahSelect');
+    const btnToggle = document.getElementById('btnToggle');
+    const statusText = document.getElementById('statusText');
+    
+    let isRepeatActive = false;
+    const videoFolder = "MP4/"; 
+
+    function loadVideo() {
+        const file = surahSelect.value;
+        if (file) {
+            player.src = videoFolder + file;
+            player.style.display = "block";
+            stopRepeat(); // Reset status jika ganti video
+        }
+    }
+
+    function timeToSeconds(str) {
+        const p = str.split(':');
+        let s = 0, m = 1;
+        while (p.length > 0) {
+            s += m * parseInt(p.pop(), 10);
+            m *= 60;
+        }
+        return s;
+    }
+
+    function secondsToTime(secs) {
+        const m = Math.floor(secs / 60);
+        const s = Math.floor(secs % 60);
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function captureTime(targetId) {
+        document.getElementById(targetId).value = secondsToTime(player.currentTime);
+    }
+
+    // Fungsi untuk menghentikan repeat secara bersih
+    function stopRepeat() {
+        isRepeatActive = false;
+        player.pause(); // Video ikut berhenti sesuai permintaanmu
+        updateUI();
+    }
+
+    btnToggle.addEventListener('click', () => {
+        if (!player.src) return alert("Pilih surah dulu!");
+
+        if (!isRepeatActive) {
+            // Validasi sebelum mengaktifkan
+            const start = timeToSeconds(document.getElementById('startTime').value);
+            const end = timeToSeconds(document.getElementById('endTime').value);
+
+            if (end <= start) {
+                alert("Kesalahan: Waktu 'Selesai' harus lebih besar dari waktu 'Mulai'!");
+                return;
+            }
+
+            isRepeatActive = true;
+            player.currentTime = start;
+            player.play();
+        } else {
+            stopRepeat();
+        }
+        updateUI();
+    });
+
+    function updateUI() {
+        if (isRepeatActive) {
+            btnToggle.innerText = "HENTIKAN REPEAT";
+            btnToggle.classList.add('active');
+        } else {
+            btnToggle.innerText = "AKTIFKAN REPEAT";
+            btnToggle.classList.remove('active');
+        }
+    }
+
+    player.addEventListener('timeupdate', () => {
+        if (!isRepeatActive) return;
+
+        const start = timeToSeconds(document.getElementById('startTime').value);
+        const end = timeToSeconds(document.getElementById('endTime').value);
+
+        if (player.currentTime >= end) {
+            player.currentTime = start;
+            player.play();
+        }
+    });
+</script>
+
+</body>
+</html>
