@@ -3,20 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Murottal Looper</title>
+    <title>Murottal Looper + Counter</title>
     <style>
         :root { --primary: #4caf50; --bg: #121212; --card: #1e1e1e; --text: #ffffff; }
         body { font-family: -apple-system, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; justify-content: center; }
         .app-container { width: 100%; max-width: 600px; }
         .card { background: var(--card); padding: 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
         
-        /* Video tetap ada tapi ukurannya disesuaikan */
         #videoWrapper { width: 100%; border-radius: 12px; overflow: hidden; background: #000; margin-bottom: 20px; display: none; }
         video { width: 100%; display: block; }
         
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 8px; font-size: 0.9em; color: #aaa; }
         select, input { width: 100%; padding: 14px; background: #2a2a2a; border: 1px solid #333; border-radius: 10px; color: white; font-size: 16px; box-sizing: border-box; }
+        
+        /* Styling untuk Counter */
+        .counter-badge {
+            text-align: center;
+            background: #2e7d32;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            display: none; /* Muncul hanya saat surah dipilih */
+        }
+        #loopCount { font-size: 1.5em; color: #fff; }
+
         .time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .btn-main { width: 100%; padding: 16px; background: var(--primary); border: none; border-radius: 12px; color: white; font-weight: bold; font-size: 1em; margin-top: 20px; cursor: pointer; }
         .btn-main.active { background: #f44336; }
@@ -30,6 +42,12 @@
     <div class="card">
         <h2 style="text-align: center; margin-top: 0; color: var(--primary);">Murottal Looper</h2>
         
+        <!-- Display Counter -->
+        <div id="counterDisplay" class="counter-badge">
+            Jumlah Pengulangan: <br>
+            <span id="loopCount">0</span>
+        </div>
+
         <div class="form-group">
             <label>Pilih Surah:</label>
             <select id="surahSelect">
@@ -41,8 +59,6 @@
         </div>
 
         <div id="videoWrapper">
-            <!-- Atribut preload="auto" memerintahkan browser untuk 
-     mengunduh video segera setelah link terdeteksi -->
             <video id="player" controls playsinline preload="auto" crossorigin="anonymous">
                 <source src="" type="video/mp4">
                     Browser tidak mendukung video.
@@ -63,6 +79,7 @@
         </div>
 
         <button class="btn-main" id="btnToggle">AKTIFKAN REPEAT</button>
+        <div class="status-box" id="statusDisplay">Pilih surah untuk memulai</div>
     </div>
 </div>
 
@@ -71,28 +88,36 @@
     const wrapper = document.getElementById('videoWrapper');
     const surahSelect = document.getElementById('surahSelect');
     const btnToggle = document.getElementById('btnToggle');
+    const loopCountDisplay = document.getElementById('loopCount');
+    const counterDisplay = document.getElementById('counterDisplay');
     
     let isRepeatActive = false;
+    let count = 0; // Variable penghitung
 
     // Fungsi ganti surah
     surahSelect.addEventListener('change', function() {
         const url = this.value;
         if (url) {
-            // Kita paksa ubah www ke dl untuk dropbox secara manual di sini jika perlu
             let cleanUrl = url.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
             
             player.src = cleanUrl;
             wrapper.style.display = "block";
-            player.load(); // Paksa browser muat ulang resource
-            stopRepeat();
+            counterDisplay.style.display = "block"; // Tampilkan counter
             
-            // Log untuk debug di console browser
-            console.log("Memuat video dari:", cleanUrl);
+            resetCounter(); // Reset angka ke 0 saat ganti surah
+            player.load(); 
+            stopRepeat();
         } else {
             wrapper.style.display = "none";
+            counterDisplay.style.display = "none";
             player.pause();
         }
     });
+
+    function resetCounter() {
+        count = 0;
+        loopCountDisplay.innerText = count;
+    }
 
     function timeToSeconds(str) {
         const p = str.split(':');
@@ -147,9 +172,14 @@
         if (!isRepeatActive) return;
         const start = timeToSeconds(document.getElementById('startTime').value);
         const end = timeToSeconds(document.getElementById('endTime').value);
+        
         if (player.currentTime >= end) {
             player.currentTime = start;
             player.play();
+            
+            // Tambah hitungan setiap kali loop terjadi
+            count++;
+            loopCountDisplay.innerText = count;
         }
     });
 </script>
